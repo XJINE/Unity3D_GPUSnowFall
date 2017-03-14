@@ -1,0 +1,50 @@
+﻿#pragma kernel SnowFall
+
+RWStructuredBuffer<float3> _VertexBuffer;
+StructuredBuffer<float>    _ScaleBuffer;
+float3 _MinRange;
+float3 _MaxRange;
+float3 _MovePower;
+
+[numthreads(4, 1, 1)]
+void SnowFall(uint3 id : SV_DispatchThreadID)
+{
+    float3 position = _VertexBuffer[id.x];
+    float  scale    = _ScaleBuffer[id.x];
+
+    position   += _MovePower;
+    //position.x += sin(position.x * 0.04);// *sin(position.y * 0.06) * sin(position.x * 0.04) * sin(position.y * 0.01);
+    //position.z += sin(position.x * 0.02) * sin(position.y * 0.04) * sin(position.x * 0.02) * sin(position.y * 0.04);
+
+    if (position.x < _MinRange.x)
+    {
+        position.x = _MaxRange.x - (_MinRange.x - position.x);
+    }
+
+    if (position.y < _MinRange.y)
+    {
+        position.y = _MaxRange.y - (_MinRange.y - position.y);
+    }
+
+    if (position.z < _MinRange.z)
+    {
+        position.z = _MaxRange.z - (_MinRange.z - position.z);
+    }
+
+    if (position.x > _MaxRange.x)
+    {
+        position.x = _MinRange.x + (position.x - _MaxRange.x);
+    }
+
+    if (position.y > _MaxRange.y)
+    {
+        position.y = _MinRange.y + (position.y - _MaxRange.y);
+    }
+
+    if (position.z > _MaxRange.z)
+    {
+        position.z = _MinRange.z + (position.z - _MaxRange.z);
+    }
+
+    _VertexBuffer[id.x] = position;
+}

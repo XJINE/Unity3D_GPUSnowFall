@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 2ac7c618bb6c51c4c91d80b67aaf8a89
+timeCreated: 1489473887
+licenseType: Pro
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences:
+  - gpuSnowFallShader: {fileID: 4800000, guid: 70e2e9ebb9c18f54e8d003e711eb968d, type: 3}
+  - gpuSnowFallComputeShader: {fileID: 7200000, guid: 706c6f88e50fb504782ffbde9d07c865,
+      type: 3}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
