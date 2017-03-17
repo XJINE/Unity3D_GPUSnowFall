@@ -47,6 +47,22 @@ public class GPUSnowFall : MonoBehaviour
     public Vector3 wind = new Vector3(0, -0.1f, 0);
 
     /// <summary>
+    /// 雪の揺らぎの速度。
+    /// </summary>
+    public float durationSpeed = 0.2f;
+
+    /// <summary>
+    /// 雪の揺らぎの幅。
+    /// </summary>
+    public float durationScale = 0.05f;
+
+    /// <summary>
+    /// 大きさによって影響を受ける方向。
+    /// 小さいほど受ける影響は小さくなります。
+    /// </summary>
+    public Vector3 scaleInfluence = new Vector3(0, -0.2f, 0);
+
+    /// <summary>
     /// 雪の描画を実行するマテリアル。
     /// </summary>
     private Material material;
@@ -125,9 +141,17 @@ public class GPUSnowFall : MonoBehaviour
                                                1,
                                                1);
 
-        this.gpuSnowFallComputeShader.SetVector("_MinRange",  this.minRange);
-        this.gpuSnowFallComputeShader.SetVector("_MaxRange",  this.maxRange);
-        this.gpuSnowFallComputeShader.SetVector("_MovePower", this.wind);
+        this.gpuSnowFallComputeShader.SetVector("_MinRange",     this.minRange);
+        this.gpuSnowFallComputeShader.SetVector("_MaxRange",     this.maxRange);
+        this.gpuSnowFallComputeShader.SetVector("_MovePower",    this.wind);
+
+        this.gpuSnowFallComputeShader.SetFloat("_MinScale",        this.minScale);
+        this.gpuSnowFallComputeShader.SetFloat("_MaxScale",        this.maxScale);
+        this.gpuSnowFallComputeShader.SetVector("_ScaleInfluence", this.scaleInfluence);
+
+        this.gpuSnowFallComputeShader.SetFloat("_Time",          Time.time);
+        this.gpuSnowFallComputeShader.SetFloat("_DurationSpeed", this.durationSpeed);
+        this.gpuSnowFallComputeShader.SetFloat("_DurationScale", this.durationScale);
 
         this.material.SetVector("_OriginPosition", base.transform.position);
         this.material.SetVector("_CameraUp", Camera.main.transform.up);
