@@ -18,7 +18,7 @@ void SnowFall(uint3 id : SV_DispatchThreadID)
     float3 position  = _VertexBuffer[id.x];
     float  scale     = _ScaleBuffer[id.x];
     float  influence1 = _Time * (id.x % 10) * _DurationSpeed;
-    float  influence2 = _Time * (id.x %  2) * _DurationSpeed;
+    float  influence2 = _Time * (id.x % 11) * _DurationSpeed;
     
     position   += _MovePower + (scale / (_MaxScale - _MinScale) * _ScaleInfluence);
     position.x += cos(influence1) * _DurationScale;
