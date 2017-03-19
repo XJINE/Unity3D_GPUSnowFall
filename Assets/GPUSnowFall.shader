@@ -32,8 +32,8 @@
             StructuredBuffer<float>  _ScaleBuffer;
 
             float3 _OriginPosition;
-            float3 _CameraUp;
-            
+            float  _FluctuationRatio;
+
             sampler2D _MainTex;
             float4    _MainTex_ST;
 
@@ -84,41 +84,105 @@
             void geometryShader(point vertexOutput input[1],
                 inout TriangleStream<vertexOutput> outputStream)
             {
+                // ビルボード処理とメッシュの登録
+
+                // UNITY_MATRIX_IT_MV[1].xyz  はカメラの上ベクトルを取得できます。
+                // UNITY_MATRIX_V[0].xyz * -1 はカメラの右ベクトルを取得することができます。
+                // SceneView でもビルボードの方向を正しく取得するためにこのように実装しています。
+                // 
+                // 一般的な取得方法は概ね次のようになります。
+                // ObjSpaceViewDir はオブジェクトからカメラへのベクトルです。
+                // float3 cameraUp    = normalize(_CameraUp);
+                // float3 eyeVector   = normalize(ObjSpaceViewDir(position.xyz));
+                // float3 cameraRight = normalize(cross(eyeVector, cameraUp));
+
+                float3   cameraUp    = UNITY_MATRIX_IT_MV[1].xyz;
+                float3   cameraRight = UNITY_MATRIX_V[0].xyz * -1;
+                float4x4 projection  = mul(UNITY_MATRIX_MVP, unity_WorldToObject);
+
+                // Unity は左て座標系なので時計回りに頂点を定義すると、視線方向から見て表向きのメッシュになります。
+                // ここでの視線の方向は、オブジェクトから向かってカメラへのベクトルで定義されます。
+                // したがって反時計回りに頂点を定義すると、カメラから見て表向きのメッシュが定義されます。
+                // 右下、右上、左下、左上の順で定義します。
+
+                //vertexOutput output;
+                //output.vertexID = input[0].vertexID;
+                //output.color    = input[0].color;
+                //output.scale    = input[0].scale;
+
+                //float4 basePosition = input[0].position;
+
+                //for (int x = 1; x > -1; x--)
+                //{
+                //    for (int y = 0; y < 2; y++)
+                //    {
+                //        output.position = float4(basePosition + output.scale * x * cameraRight
+                //                                              + output.scale * y * cameraUp, 1);
+                //        output.position = mul(projection, output.position);
+                //        output.uv       = TRANSFORM_TEX(float2(x, y), _MainTex);
+
+                //        outputStream.Append(output);
+                //    }
+                //}
+
+                //outputStream.RestartStrip();
+
+                // 新規実装
+
                 vertexOutput output;
-                uint   vertexID     = input[0].vertexID;
-                float4 position     = input[0].position;
-                float4 color        = input[0].color;
-                float  scale        = input[0].scale;
-                float  randomValue;// = GetRandomValue(color.xy, vertexID);
-                const float2 randomCoord = float2(0.5,0.5);
+                output.vertexID = input[0].vertexID;
+                output.color    = input[0].color;
+                output.scale    = input[0].scale;
 
-                for (int x = 0; x < 2; x++) 
-                {
-                    randomValue = GetRandomValue(float2(x, x), vertexID) + 0.1;
+                float4 basePosition     = input[0].position;
+                float  halfLength       = output.scale * 0.5;
+                float  fluctuation      = 0;
+                float  fluctuationRatio = _FluctuationRatio;
 
-                    for (int y = 0; y < 2; y++) 
-                    {
-                        // ビルボードのメッシュを構成する 4 頂点になるようにする。
+                float2 rightBottom = float2(1, 0);
+                float2 rightTop    = float2(1, 1);
+                float2 leftBottom  = float2(0, 0);
+                float2 leftTop     = float2(0, 1);
 
-                        output.position = position + float4(float2(x, y) * 0.5 * scale * randomValue, 0, 0);
+                // RightBottom
 
-                        // ビルボードの処理。
-                        // ObjSpaceViewDir は、オブジェクト空間から見たカメラの方向を算出する関数です。
+                fluctuation        = GetRandomValue(rightBottom, output.vertexID) * output.scale * fluctuationRatio;
+                output.position    = float4(basePosition + (halfLength + fluctuation) * cameraRight
+                                                         - (halfLength + fluctuation) * cameraUp, 1);
+                output.position    = mul(projection, output.position);
+                output.uv          = TRANSFORM_TEX(rightBottom, _MainTex);
 
-                        //float3 eyeVector   = normalize(ObjSpaceViewDir(output.position));
-                        //float3 rightVector = normalize(cross(eyeVector, _CameraUp));
-                        //output.position += float4((x - 0.5f) * rightVector, 0);
-                        //output.position += float4((y - 0.5f) * _CameraUp, 0);
+                outputStream.Append(output);
 
-                        output.vertexID = vertexID;
-                        output.position = mul(UNITY_MATRIX_VP, output.position);
-                        output.uv       = TRANSFORM_TEX(float2(x, y), _MainTex);
-                        output.color    = color;
-                        output.scale    = scale;
+                // RightTop
 
-                        outputStream.Append(output);
-                    }
-                }
+                fluctuation     = GetRandomValue(rightTop, output.vertexID) * output.scale * fluctuationRatio;
+                output.position = float4(basePosition + (halfLength + fluctuation) * cameraRight
+                                                      + (halfLength + fluctuation) * cameraUp, 1);
+                output.position = mul(projection, output.position);
+                output.uv       = TRANSFORM_TEX(rightTop, _MainTex);
+
+                outputStream.Append(output);
+
+                // LeftBottom
+
+                fluctuation     = GetRandomValue(leftBottom, output.vertexID) * output.scale * fluctuationRatio;
+                output.position = float4(basePosition - (halfLength + fluctuation) * cameraRight
+                                                      - (halfLength + fluctuation) * cameraUp, 1);
+                output.position = mul(projection, output.position);
+                output.uv       = TRANSFORM_TEX(leftBottom, _MainTex);
+
+                outputStream.Append(output);
+
+                // LeftTop
+
+                fluctuation     = GetRandomValue(leftTop, output.vertexID) * output.scale * fluctuationRatio;
+                output.position = float4(basePosition - (halfLength + fluctuation) * cameraRight
+                                                      + (halfLength + fluctuation) * cameraUp, 1);
+                output.position = mul(projection, output.position);
+                output.uv       = TRANSFORM_TEX(leftTop, _MainTex);
+
+                outputStream.Append(output);
 
                 outputStream.RestartStrip();
             }
@@ -129,13 +193,16 @@
 
             fixed4 fragmentShader(vertexOutput input) : COLOR
             {
-                //return input.color;
-
                 fixed4 color = tex2D(_MainTex, input.uv);
 
+                // メッシュの変形などを確認するとき単色で出す。
+
+                //color = float4(1, 1, 0, 1);
+
                 // 描画オブジェクトの前後関係が重要なときは、
-                // ZWrite を有効にして、α で削る。
-                //if (color.a < 0.3)
+                // ZWrite を有効にして透過部分は α で削る。
+
+                //if (color.a < 0.1)
                 //{
                 //    discard;
                 //}

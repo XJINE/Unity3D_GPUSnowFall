@@ -63,6 +63,11 @@ public class GPUSnowFall : MonoBehaviour
     public Vector3 scaleInfluence = new Vector3(0, -0.2f, 0);
 
     /// <summary>
+    /// 変形の程度。
+    /// </summary>
+    public float fluctuationRatio = 0.7f;
+
+    /// <summary>
     /// 雪の描画を実行するマテリアル。
     /// </summary>
     private Material material;
@@ -153,8 +158,8 @@ public class GPUSnowFall : MonoBehaviour
         this.gpuSnowFallComputeShader.SetFloat("_DurationSpeed", this.durationSpeed);
         this.gpuSnowFallComputeShader.SetFloat("_DurationScale", this.durationScale);
 
-        this.material.SetVector("_OriginPosition", base.transform.position);
-        this.material.SetVector("_CameraUp", Camera.main.transform.up);
+        this.material.SetVector("_OriginPosition",  base.transform.position);
+        this.material.SetFloat("_FluctuationRatio", this.fluctuationRatio);
     }
 
     /// <summary>
