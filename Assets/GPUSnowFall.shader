@@ -32,7 +32,7 @@
             StructuredBuffer<float>  _ScaleBuffer;
 
             float3 _OriginPosition;
-            float  _FluctuationRatio;
+            float  _DeformationRatio;
 
             sampler2D _MainTex;
             float4    _MainTex_ST;
@@ -45,11 +45,12 @@
 
             struct vertexOutput
             {
-                uint   vertexID : TESSFACTOR0;
-                float4 position : SV_POSITION;
-                float2 uv       : TEXCOORD0;
-                half4  color    : TEXCOORD1;
-                float  scale    : TESSFACTOR1;
+                float4 position   : SV_POSITION;
+                float2 uv         : TEXCOORD0;
+                half4  color      : TEXCOORD1;
+                float  scale      : PSIZE;
+                uint   vertexID   : TESSFACTOR0;
+                float  depthLevel : TESSFACTOR1;
             };
 
             float GetRandomValue(float2 coord, int Seed)
@@ -64,14 +65,16 @@
             vertexOutput vertexShader(uint vertexID : SV_VertexID)
             {
                 vertexOutput output;
-                
-                half value = vertexID % 10 / 10.0;
 
-                output.vertexID = vertexID;
-                output.position = float4(_VertexBuffer[vertexID] + _OriginPosition, 1);
-                output.color    = half4(value, value, value, 1);
-                output.uv       = float2(0, 0);
-                output.scale    = _ScaleBuffer[vertexID];
+                // 少し暗い雪も用意する。
+                half color = saturate(GetRandomValue(float2(0, 0), vertexID) + 0.8);
+
+                output.position   = float4(_VertexBuffer[vertexID] + _OriginPosition, 1);
+                output.uv         = float2(0, 0);
+                output.color      = half4(color, color, color, 1);
+                output.scale      = _ScaleBuffer[vertexID];
+                output.vertexID   = vertexID;
+                output.depthLevel = 0;
 
                 return output;
             }
@@ -99,6 +102,7 @@
                 float3   cameraUp    = UNITY_MATRIX_IT_MV[1].xyz;
                 float3   cameraRight = UNITY_MATRIX_V[0].xyz * -1;
                 float4x4 projection  = mul(UNITY_MATRIX_MVP, unity_WorldToObject);
+                float4 basePosition  = input[0].position;
 
                 // Unity は左て座標系なので時計回りに頂点を定義すると、視線方向から見て表向きのメッシュになります。
                 // ここでの視線の方向は、オブジェクトから向かってカメラへのベクトルで定義されます。
@@ -106,11 +110,10 @@
                 // 右下、右上、左下、左上の順で定義します。
 
                 //vertexOutput output;
-                //output.vertexID = input[0].vertexID;
+
                 //output.color    = input[0].color;
                 //output.scale    = input[0].scale;
-
-                //float4 basePosition = input[0].position;
+                //output.vertexID = input[0].vertexID;
 
                 //for (int x = 1; x > -1; x--)
                 //{
@@ -130,14 +133,15 @@
                 // 新規実装
 
                 vertexOutput output;
-                output.vertexID = input[0].vertexID;
-                output.color    = input[0].color;
-                output.scale    = input[0].scale;
+                
+                output.color      = input[0].color;
+                output.scale      = input[0].scale;
+                output.vertexID   = input[0].vertexID;
+                output.depthLevel = saturate(length(basePosition - _WorldSpaceCameraPos) * 0.1);  // means / 10
 
-                float4 basePosition     = input[0].position;
                 float  halfLength       = output.scale * 0.5;
                 float  fluctuation      = 0;
-                float  fluctuationRatio = _FluctuationRatio;
+                float  DeformationRatio = _DeformationRatio;
 
                 float2 rightBottom = float2(1, 0);
                 float2 rightTop    = float2(1, 1);
@@ -146,7 +150,7 @@
 
                 // RightBottom
 
-                fluctuation        = GetRandomValue(rightBottom, output.vertexID) * output.scale * fluctuationRatio;
+                fluctuation        = GetRandomValue(rightBottom, output.vertexID) * output.scale * DeformationRatio;
                 output.position    = float4(basePosition + (halfLength + fluctuation) * cameraRight
                                                          - (halfLength + fluctuation) * cameraUp, 1);
                 output.position    = mul(projection, output.position);
@@ -156,7 +160,7 @@
 
                 // RightTop
 
-                fluctuation     = GetRandomValue(rightTop, output.vertexID) * output.scale * fluctuationRatio;
+                fluctuation     = GetRandomValue(rightTop, output.vertexID) * output.scale * DeformationRatio;
                 output.position = float4(basePosition + (halfLength + fluctuation) * cameraRight
                                                       + (halfLength + fluctuation) * cameraUp, 1);
                 output.position = mul(projection, output.position);
@@ -166,7 +170,7 @@
 
                 // LeftBottom
 
-                fluctuation     = GetRandomValue(leftBottom, output.vertexID) * output.scale * fluctuationRatio;
+                fluctuation     = GetRandomValue(leftBottom, output.vertexID) * output.scale * DeformationRatio;
                 output.position = float4(basePosition - (halfLength + fluctuation) * cameraRight
                                                       - (halfLength + fluctuation) * cameraUp, 1);
                 output.position = mul(projection, output.position);
@@ -176,7 +180,7 @@
 
                 // LeftTop
 
-                fluctuation     = GetRandomValue(leftTop, output.vertexID) * output.scale * fluctuationRatio;
+                fluctuation     = GetRandomValue(leftTop, output.vertexID) * output.scale * DeformationRatio;
                 output.position = float4(basePosition - (halfLength + fluctuation) * cameraRight
                                                       + (halfLength + fluctuation) * cameraUp, 1);
                 output.position = mul(projection, output.position);
@@ -193,7 +197,37 @@
 
             fixed4 fragmentShader(vertexOutput input) : COLOR
             {
-                fixed4 color = tex2D(_MainTex, input.uv);
+                float mipLevel = 4 - input.depthLevel * 4;
+
+                //if (mipLevel < 1)
+                //{
+                //    return fixed4(1, 0, 0, 1);
+                //}
+                //if (mipLevel < 2)
+                //{
+                //    return fixed4(0, 1, 0, 1);
+                //}
+                //if (mipLevel < 3)
+                //{
+                //    return fixed4(0, 0, 1, 1);
+                //}
+                //if (mipLevel < 4)
+                //{
+                //    return fixed4(1, 1, 0, 1);
+                //}
+                //if (mipLevel >= 4)
+                //{
+                //    return fixed4(0, 0, 0, 1);
+                //}
+
+                fixed4 color;
+
+                color    = tex2Dlod(_MainTex, float4(input.uv, 0, 4 - input.depthLevel * 4));
+                color.a *= input.depthLevel;
+
+                // 一般的な色の設定
+
+                //color = tex2D(_MainTex, input.uv);
 
                 // メッシュの変形などを確認するとき単色で出す。
 
@@ -202,7 +236,7 @@
                 // 描画オブジェクトの前後関係が重要なときは、
                 // ZWrite を有効にして透過部分は α で削る。
 
-                //if (color.a < 0.1)
+                //if (color.a < 0.01)
                 //{
                 //    discard;
                 //}

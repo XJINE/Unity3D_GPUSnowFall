@@ -9,20 +9,20 @@ float  _MaxScale;
 float3 _ScaleInfluence;
 float3 _MovePower;
 float  _Time;
-float  _DurationSpeed;
-float  _DurationScale;
+float  _FluctuationSpeed;
+float  _FluctuationScale;
 
 [numthreads(4, 1, 1)]
 void SnowFall(uint3 id : SV_DispatchThreadID)
 {
     float3 position  = _VertexBuffer[id.x];
     float  scale     = _ScaleBuffer[id.x];
-    float  influence1 = _Time * (id.x % 10) * _DurationSpeed;
-    float  influence2 = _Time * (id.x % 11) * _DurationSpeed;
+    float  influence1 = _Time * (id.x % 10) * _FluctuationSpeed;
+    float  influence2 = _Time * (id.x % 11) * _FluctuationSpeed;
     
     position   += _MovePower + (scale / (_MaxScale - _MinScale) * _ScaleInfluence);
-    position.x += cos(influence1) * _DurationScale;
-    position.z += cos(influence2) * _DurationScale;
+    position.x += cos(influence1) * _FluctuationScale;
+    position.z += cos(influence2) * _FluctuationScale;
 
     if (position.x < _MinRange.x)
     {

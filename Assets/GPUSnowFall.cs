@@ -49,12 +49,13 @@ public class GPUSnowFall : MonoBehaviour
     /// <summary>
     /// 雪の揺らぎの速度。
     /// </summary>
-    public float durationSpeed = 0.2f;
+    public float 
+fluctuationSpeed = 0.2f;
 
     /// <summary>
     /// 雪の揺らぎの幅。
     /// </summary>
-    public float durationScale = 0.05f;
+    public float fluctuationScale = 0.05f;
 
     /// <summary>
     /// 大きさによって影響を受ける方向。
@@ -65,7 +66,7 @@ public class GPUSnowFall : MonoBehaviour
     /// <summary>
     /// 変形の程度。
     /// </summary>
-    public float fluctuationRatio = 0.7f;
+    public float deformationRatio = 0.7f;
 
     /// <summary>
     /// 雪の描画を実行するマテリアル。
@@ -155,11 +156,11 @@ public class GPUSnowFall : MonoBehaviour
         this.gpuSnowFallComputeShader.SetVector("_ScaleInfluence", this.scaleInfluence);
 
         this.gpuSnowFallComputeShader.SetFloat("_Time",          Time.time);
-        this.gpuSnowFallComputeShader.SetFloat("_DurationSpeed", this.durationSpeed);
-        this.gpuSnowFallComputeShader.SetFloat("_DurationScale", this.durationScale);
+        this.gpuSnowFallComputeShader.SetFloat("_FluctuationSpeed", this.fluctuationSpeed);
+        this.gpuSnowFallComputeShader.SetFloat("_FluctuationScale", this.fluctuationScale);
 
         this.material.SetVector("_OriginPosition",  base.transform.position);
-        this.material.SetFloat("_FluctuationRatio", this.fluctuationRatio);
+        this.material.SetFloat("_DeformationRatio", this.deformationRatio);
     }
 
     /// <summary>
